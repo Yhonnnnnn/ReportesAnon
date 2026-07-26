@@ -1,0 +1,6 @@
+# Permite servir las imágenes pero no listar el contenido de la carpeta
+Options -Indexes
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
