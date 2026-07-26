@@ -1,0 +1,97 @@
+<div class="login-page">
+  <canvas id="mapaFondo" class="login-canvas"></canvas>
+
+  <div class="login-card">
+    <a routerLink="/" class="login-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Volver al mapa
+    </a>
+
+    <div class="login-brand">
+      <span class="login-brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12" y2="17"></line>
+        </svg>
+      </span>
+      <h1>Alerta Ecuador</h1>
+    </div>
+
+    <div class="login-tabs">
+      <button type="button" [class.active]="modo === 'login'" (click)="cambiarModo('login')">
+        Iniciar sesión
+      </button>
+      <button type="button" [class.active]="modo === 'registro'" (click)="cambiarModo('registro')">
+        Crear cuenta
+      </button>
+    </div>
+
+    <p class="login-hint">
+      Usa tu correo y contraseña para acceder. Los reportes que envíes siguen
+      siendo 100% anónimos, tengas sesión iniciada o no.
+    </p>
+
+    <form (ngSubmit)="enviar()">
+      <div class="campo">
+        <label>Correo electrónico</label>
+        <input
+          type="email"
+          [(ngModel)]="correo"
+          name="correo"
+          placeholder="tu@correo.com"
+          autocomplete="email"
+          inputmode="email"
+          required
+        />
+      </div>
+
+      @if (modo === 'registro') {
+        <div class="campo">
+          <label for="alias">Alias</label>
+          <input
+            id="alias"
+            type="text"
+            [(ngModel)]="alias"
+            name="alias"
+            placeholder="Ej. vecino_atento"
+            autocomplete="nickname"
+            minlength="3"
+            maxlength="30"
+            pattern="[a-zA-Z0-9_.-]+"
+            required
+          />
+          <p class="campo-ayuda">No uses tu nombre real. Elige un alias para proteger tu identidad.</p>
+        </div>
+      }
+
+      <div class="campo">
+        <label>Contraseña</label>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Mínimo 6 caracteres"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+
+      @if (error) {
+        <div class="login-error">{{ error }}</div>
+      }
+
+      <button type="submit" class="login-submit" [disabled]="cargando">
+        @if (cargando) {
+          Procesando...
+        } @else if (modo === 'login') {
+          Iniciar sesión
+        } @else {
+          Crear cuenta
+        }
+      </button>
+    </form>
+  </div>
+</div>

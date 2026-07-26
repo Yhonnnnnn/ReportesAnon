@@ -1,0 +1,164 @@
+<div class="reportes-page">
+  
+  <div class="page-header">
+    <div class="page-header-content">
+      <a routerLink="/" class="btn-volver">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        Volver al mapa
+      </a>
+      <h1>Lista de Reportes</h1>
+      <span class="total-badge">{{ stats.total }} reportes</span>
+      <span class="page-header-divider"></span>
+      <app-perfil-usuario></app-perfil-usuario>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <span class="stat-number">{{ stats.total }}</span>
+      <span class="stat-label">Total</span>
+    </div>
+    <div class="stat-card robo">
+      <span class="stat-number">{{ stats.robo }}</span>
+      <span class="stat-label">Robo</span>
+    </div>
+    <div class="stat-card secuestro">
+      <span class="stat-number">{{ stats.secuestro }}</span>
+      <span class="stat-label">Secuestro</span>
+    </div>
+    <div class="stat-card extorsion">
+      <span class="stat-number">{{ stats.extorsion }}</span>
+      <span class="stat-label">Extorsión</span>
+    </div>
+    <div class="stat-card sospechoso">
+      <span class="stat-number">{{ stats.sospechoso }}</span>
+      <span class="stat-label">Sospechoso</span>
+    </div>
+    <div class="stat-card otro">
+      <span class="stat-number">{{ stats.otro }}</span>
+      <span class="stat-label">Otros</span>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros">
+    <div class="filtro-busqueda">
+      <input 
+        type="text" 
+        [(ngModel)]="busqueda" 
+        (ngModelChange)="aplicarFiltros()"
+        placeholder="Buscar en reportes..."
+        class="input-busqueda"
+      />
+    </div>
+    <div class="filtros-select">
+      <select [(ngModel)]="filtroCategoria" (ngModelChange)="aplicarFiltros()">
+        <option value="todas">Todas las categorías</option>
+        <option value="robo">Robo</option>
+        <option value="secuestro">Secuestro</option>
+        <option value="extorsion">Extorsión</option>
+        <option value="sospechoso">Sospechoso</option>
+        <option value="otro">Otros</option>
+      </select>
+      <select [(ngModel)]="orden" (ngModelChange)="aplicarFiltros()">
+        <option value="reciente">Mas recientes</option>
+        <option value="antiguo">Mas antiguos</option>
+      </select>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div class="estado-cargando">
+      <div class="spinner"></div>
+      <p>Cargando reportes...</p>
+    </div>
+  }
+
+  @if (error) {
+    <div class="estado-error">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+      <p>{{ error }}</p>
+      <button (click)="cargarReportes()" class="btn-reintentar">Reintentar</button>
+    </div>
+  }
+
+  @if (!cargando && !error && reportesFiltrados.length === 0) {
+    <div class="estado-vacio">
+      <div class="vacio-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <h3>No hay reportes</h3>
+      <p>No se encontraron reportes con los filtros seleccionados.</p>
+      <a routerLink="/" class="btn-ir-mapa">Ir al mapa y reportar</a>
+    </div>
+  }
+
+  @if (!cargando && reportesFiltrados.length > 0) {
+    <div class="lista-reportes">
+      @for (reporte of reportesFiltrados; track reporte.id) {
+        <div class="reporte-card" (click)="verDetalle(reporte)">
+          <div class="card-icono" [style.background]="getColorCategoria(reporte.categoria) + '20'" [innerHTML]="getSvgCategoria(reporte.categoria)">
+          </div>
+          <div class="card-info">
+            <div class="card-categoria" [style.color]="getColorCategoria(reporte.categoria)">
+              {{ reporte.categoria }}
+            </div>
+            <p class="card-descripcion">{{ reporte.descripcion }}</p>
+            <div class="card-meta">
+              <span class="card-fecha">{{ formatearFecha(reporte.fecha) }}</span>
+              <span class="card-coords">{{ reporte.latitud | number:'1.4-4' }}, {{ reporte.longitud | number:'1.4-4' }}</span>
+            </div>
+          </div>
+          <div class="card-flecha">›</div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (mostrarDetalle && reporteSeleccionado) {
+    <div class="detalle-overlay" (click)="cerrarDetalle()">
+      <div class="detalle-modal" (click)="$event.stopPropagation()">
+        <button class="detalle-cerrar" (click)="cerrarDetalle()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        
+        <div class="detalle-icono" [style.background]="getColorCategoria(reporteSeleccionado.categoria) + '20'" [innerHTML]="getSvgCategoria(reporteSeleccionado.categoria)">
+        </div>
+
+        <h2 class="detalle-categoria" [style.color]="getColorCategoria(reporteSeleccionado.categoria)">
+          {{ reporteSeleccionado.categoria }}
+        </h2>
+
+        <p class="detalle-descripcion">{{ reporteSeleccionado.descripcion }}</p>
+
+        <div class="detalle-info">
+          <div class="detalle-item">
+            <span class="detalle-label">Fecha</span>
+            <span class="detalle-valor">{{ formatearFecha(reporteSeleccionado.fecha) }}</span>
+          </div>
+          <div class="detalle-item">
+            <span class="detalle-label">Latitud</span>
+            <span class="detalle-valor">{{ reporteSeleccionado.latitud | number:'1.6-6' }}</span>
+          </div>
+          <div class="detalle-item">
+            <span class="detalle-label">Longitud</span>
+            <span class="detalle-valor">{{ reporteSeleccionado.longitud | number:'1.6-6' }}</span>
+          </div>
+          <div class="detalle-item">
+            <span class="detalle-label">ID</span>
+            <span class="detalle-valor">#{{ reporteSeleccionado.id }}</span>
+          </div>
+        </div>
+
+        <div class="detalle-mapa-link">
+          <a href="https://www.openstreetmap.org/?mlat={{ reporteSeleccionado.latitud }}&mlon={{ reporteSeleccionado.longitud }}#map/16/{{ reporteSeleccionado.latitud }}/{{ reporteSeleccionado.longitud }}" target="_blank" class="btn-mapa-externo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><circle cx="12" cy="10" r="3"/><path d="M12 21s-8-7-8-11a8 8 0 1 1 16 0c0 4-8 11-8 11z"/></svg>
+            Ver en OpenStreetMap
+          </a>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

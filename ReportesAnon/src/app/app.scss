@@ -1,0 +1,68 @@
+/* ===== HEADER OSCURO ===== */
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-bottom: 2px solid #e53935;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-icon {
+    font-size: 28px;
+    animation: pulse-icon 2s infinite;
+}
+
+@keyframes pulse-icon {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.header-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-shadow: 0 0 20px rgba(229, 57, 53, 0.3);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-stats {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Ajuste para que el mapa no quede detrás del header */
+app-mapa {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+}
