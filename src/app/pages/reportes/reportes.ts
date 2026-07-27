@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ReportesService, Reporte } from '../mapa/reportes.service';
+import { AuthService } from '../../services/auth.service';
 import { PerfilUsuario } from '../../components/perfil-usuario/perfil-usuario';
 
 @Component({
@@ -28,7 +29,12 @@ export class Reportes implements OnInit {
   reporteSeleccionado: Reporte | null = null;
   mostrarDetalle = false;
 
-  constructor(private reportesService: ReportesService, private sanitizer: DomSanitizer) {}
+  constructor(
+    private reportesService: ReportesService,
+    private sanitizer: DomSanitizer,
+    private auth: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.cargarReportes();
@@ -145,6 +151,22 @@ export class Reportes implements OnInit {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    });
+  }
+
+  votar(reporte: Reporte, tipo: 'confirma' | 'falso') {
+    if (!this.auth.estaAutenticado) {
+      this.router.navigateByUrl('/login');
+      return;
+    }
+
+    this.reportesService.votar(reporte.id, tipo).subscribe({
+      next: (res) => {
+        reporte.confirmaciones = res.confirmaciones;
+        reporte.marcasFalso = res.marcasFalso;
+        localStorage.setItem('reportes', JSON.stringify(this.reportes));
+      },
+      error: () => {}
     });
   }
 }

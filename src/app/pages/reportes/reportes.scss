@@ -319,11 +319,24 @@
     color: #666;
 }
 
-.card-flecha {
-    font-size: 24px;
-    color: #444;
+.card-ver-btn {
+    background: linear-gradient(135deg, #e53935, #c62828);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
     flex-shrink: 0;
-    padding-left: 8px;
+    align-self: center;
+    margin-left: 8px;
+}
+
+.card-ver-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
 }
 
 /* ===== MODAL DETALLE ===== */
@@ -415,6 +428,62 @@
     margin: 0 0 24px;
     padding-bottom: 24px;
     border-bottom: 1px solid #333;
+}
+
+.detalle-evidencia {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.detalle-evidencia-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid #333;
+}
+
+.detalle-votos {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.btn-voto {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-confirmar {
+    background: rgba(67, 160, 71, 0.1);
+    color: #66bb6a;
+    border-color: rgba(67, 160, 71, 0.3);
+}
+
+.btn-confirmar:hover {
+    background: rgba(67, 160, 71, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-falso {
+    background: rgba(229, 57, 53, 0.1);
+    color: #ef5350;
+    border-color: rgba(229, 57, 53, 0.3);
+}
+
+.btn-falso:hover {
+    background: rgba(229, 57, 53, 0.2);
+    transform: translateY(-1px);
 }
 
 .detalle-info {

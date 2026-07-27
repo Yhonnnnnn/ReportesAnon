@@ -97,7 +97,7 @@
   @if (!cargando && reportesFiltrados.length > 0) {
     <div class="lista-reportes">
       @for (reporte of reportesFiltrados; track reporte.id) {
-        <div class="reporte-card" (click)="verDetalle(reporte)">
+        <div class="reporte-card">
           <div class="card-icono" [style.background]="getColorCategoria(reporte.categoria) + '20'" [innerHTML]="getSvgCategoria(reporte.categoria)">
           </div>
           <div class="card-info">
@@ -110,7 +110,7 @@
               <span class="card-coords">{{ reporte.latitud | number:'1.4-4' }}, {{ reporte.longitud | number:'1.4-4' }}</span>
             </div>
           </div>
-          <div class="card-flecha">›</div>
+          <button class="card-ver-btn" (click)="verDetalle(reporte)">Ver</button>
         </div>
       }
     </div>
@@ -149,6 +149,23 @@
             <span class="detalle-label">ID</span>
             <span class="detalle-valor">#{{ reporteSeleccionado.id }}</span>
           </div>
+        </div>
+
+        @if (reporteSeleccionado.evidenciaUrl) {
+          <div class="detalle-evidencia">
+            <img [src]="reporteSeleccionado.evidenciaUrl" alt="Evidencia" class="detalle-evidencia-img" />
+          </div>
+        }
+
+        <div class="detalle-votos">
+          <button class="btn-voto btn-confirmar" (click)="votar(reporteSeleccionado, 'confirma')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Confirmar ({{ reporteSeleccionado.confirmaciones }})
+          </button>
+          <button class="btn-voto btn-falso" (click)="votar(reporteSeleccionado, 'falso')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Falso ({{ reporteSeleccionado.marcasFalso }})
+          </button>
         </div>
 
         <div class="detalle-mapa-link">
