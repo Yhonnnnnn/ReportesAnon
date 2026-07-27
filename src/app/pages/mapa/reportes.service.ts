@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { API_URL } from '../../config';
 
@@ -40,6 +40,11 @@ export class ReportesService {
 
   crearReporte(data: NuevoReporte): Observable<any> {
     const headers = { Authorization: `Bearer ${this.auth.token}` };
+
+    return this._crearReporte(data, headers).pipe(timeout(15000));
+  }
+
+  private _crearReporte(data: NuevoReporte, headers: any): Observable<any> {
 
     if (data.evidencia) {
       const form = new FormData();

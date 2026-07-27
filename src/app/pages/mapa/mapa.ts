@@ -295,29 +295,27 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.enviando = false;
         this.mensajeExito = true;
 
-        const nuevoReporte: Reporte = {
-          id: res.id,
-          categoria: this.reporte.categoria,
-          descripcion: this.reporte.descripcion,
-          latitud: this.selectedCoords!.lat,
-          longitud: this.selectedCoords!.lng,
-          fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          evidenciaUrl: null,
-          confirmaciones: 0,
-          marcasFalso: 0
-        };
-        this.reportesCache.unshift(nuevoReporte);
-        this.agregarMarcadorReporte(nuevoReporte);
-        this.totalReportes = this.marcadores.size;
-        this.actualizarContador();
-        this.guardarCache(this.reportesCache);
-        this.actualizarUltimaFecha([nuevoReporte]);
+        // Recargar reportes desde el servidor para evitar duplicados
+        this.reportesService.obtenerReportes().subscribe({
+          next: (reportes) => {
+            this.reportesCache = reportes;
+            this.pintarReportes(reportes);
+            this.guardarCache(reportes);
+            this.actualizarUltimaFecha(reportes);
+            this.filtrarPanel(this.filtroPanel);
+          },
+          error: () => {}
+        });
 
         setTimeout(() => { this.cerrarModal(); }, 1500);
       },
       error: (err) => {
         this.enviando = false;
-        this.errorEnvio = err?.error?.error || 'No se pudo enviar el reporte, intenta de nuevo';
+        // Si es error de timeout, mostrar mensaje más claro
+        const msg = err.name === 'TimeoutError'
+          ? 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.'
+          : err?.error?.error || 'No se pudo enviar el reporte, intenta de nuevo';
+        this.errorEnvio = msg;
       }
     });
   }
