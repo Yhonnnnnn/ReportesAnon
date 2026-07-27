@@ -10,4 +10,4 @@
 //
 // Todos los servicios (auth, reportes, votos) arman su URL a partir de
 // esta base, así que nunca quedan desincronizados entre sí.
-export const API_URL = 'reportesanon-production.up.railway.app';
+export const API_URL = 'https://reportesanon-production.up.railway.app';
