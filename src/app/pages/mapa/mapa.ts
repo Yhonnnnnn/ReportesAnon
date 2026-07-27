@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ViewEncapsulation, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
@@ -49,7 +49,8 @@ export class Mapa implements AfterViewInit, OnDestroy {
     private reportesService: ReportesService,
     private sanitizer: DomSanitizer,
     public auth: AuthService,
-    private router: Router
+    private router: Router,
+    private ngZone: NgZone
   ) {}
 
   ngAfterViewInit(): void {
@@ -400,8 +401,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
           ${evidenciaHtml}
           <small style="color:#666;display:flex;align-items:center;gap:4px;font-size:10px;margin-bottom:8px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${fechaFormateada}</small>
           <div style="display:flex;gap:6px;">
-            <button onclick="window.dispatchEvent(new CustomEvent('votar-reporte',{detail:{id:${id},tipo:'confirma'}}))" style="flex:1;background:rgba(67,160,71,0.15);color:#66bb6a;border:1px solid rgba(67,160,71,0.3);border-radius:6px;padding:6px;font-size:10px;font-weight:600;cursor:pointer;">✓ Confirmar (${confirmaciones})</button>
-            <button onclick="window.dispatchEvent(new CustomEvent('votar-reporte',{detail:{id:${id},tipo:'falso'}}))" style="flex:1;background:rgba(229,57,53,0.15);color:#ef5350;border:1px solid rgba(229,57,53,0.3);border-radius:6px;padding:6px;font-size:10px;font-weight:600;cursor:pointer;">✕ Falso (${marcasFalso})</button>
+            <button onclick="window.dispatchEvent(new CustomEvent('ver-reporte',{detail:{id:${id}}}))" style="flex:1;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;">Ver detalles</button>
           </div>
         </div>
       `);
@@ -511,11 +511,23 @@ export class Mapa implements AfterViewInit, OnDestroy {
     // Posición centrada arriba del mapa - Leaflet permite 'topcenter' con custom position
     this.map.addControl(new (SearchControl as any)({ position: 'topleft' }));
 
-    // Escucha los clics en los botones "Confirmar"/"Falso" de los popups (ver agregarMarcadorReporte)
+    // Escucha los clics en los botones "Confirmar"/"Falso" de los popups
     window.addEventListener('votar-reporte', (e: any) => {
       const { id, tipo } = e.detail;
       const reporte = this.reportesCache.find(r => r.id === id);
       if (reporte) this.votar(reporte, tipo);
+    });
+
+    // Escucha el clic en "Ver detalles" del popup del marcador para abrir el modal
+    window.addEventListener('ver-reporte', (e: any) => {
+      this.ngZone.run(() => {
+        const { id } = e.detail;
+        const reporte = this.reportesCache.find(r => r.id === id);
+        if (reporte) {
+          this.reporteDetalle = reporte;
+          this.mostrarDetalle = true;
+        }
+      });
     });
   }
 
