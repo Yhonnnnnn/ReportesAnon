@@ -21,7 +21,7 @@ switch ("$method:$action") {
             echo json_encode(['error' => 'Escribe un correo electrónico válido']);
             exit;
         }
-        if (mb_strlen($alias) < 3 || mb_strlen($alias) > 30 || !preg_match('/^[a-zA-Z0-9_.-]+$/', $alias)) {
+        if (mb_strlen($alias) < 3 || mb_strlen($alias) > 30 || !preg_match('/^[a-zA-Z0-9_. -]+$/', $alias)) {
             http_response_code(400);
             echo json_encode(['error' => 'El alias debe tener entre 3 y 30 caracteres y no usar tu nombre real']);
             exit;
