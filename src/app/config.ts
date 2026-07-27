@@ -10,4 +10,4 @@
 //
 // Todos los servicios (auth, reportes, votos) arman su URL a partir de
 // esta base, así que nunca quedan desincronizados entre sí.
-export const API_URL = 'http://localhost/ReportesAnon/backend/api';
+export const API_URL = 'https://tu-backend-production.up.railway.app/api';
