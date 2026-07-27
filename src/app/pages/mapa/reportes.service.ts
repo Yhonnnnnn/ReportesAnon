@@ -28,6 +28,7 @@ export interface NuevoReporte {
 export class ReportesService {
   private apiUrl = `${API_URL}/reportes.php`;
   private votosUrl = `${API_URL}/votos.php`;
+  private createAbortController: AbortController | null = null;
 
   constructor(private http: HttpClient, private auth: AuthService) {}
 
@@ -41,19 +42,55 @@ export class ReportesService {
   crearReporte(data: NuevoReporte): Observable<any> {
     const headers = { Authorization: `Bearer ${this.auth.token}` };
 
+    // Si incluye evidencia, el backend recodifica la imagen (puede tardar),
+    // por eso aumentamos el timeout para esos casos.
+    if (data.evidencia) {
+      return this._crearReporte(data, headers).pipe(timeout(120000));
+    }
+
     return this._crearReporte(data, headers).pipe(timeout(15000));
   }
 
   private _crearReporte(data: NuevoReporte, headers: any): Observable<any> {
 
     if (data.evidencia) {
-      const form = new FormData();
-      form.append('categoria', data.categoria);
-      form.append('descripcion', data.descripcion);
-      form.append('latitud', String(data.latitud));
-      form.append('longitud', String(data.longitud));
-      form.append('evidencia', data.evidencia);
-      return this.http.post(this.apiUrl, form, { headers });
+      // Usamos fetch con AbortController para permitir abortar la subida de imagen.
+      return new Observable((observer) => {
+        const controller = new AbortController();
+        this.createAbortController = controller;
+
+        const form = new FormData();
+        form.append('categoria', data.categoria);
+        form.append('descripcion', data.descripcion);
+        form.append('latitud', String(data.latitud));
+        form.append('longitud', String(data.longitud));
+        form.append('evidencia', data.evidencia as File);
+
+        fetch(this.apiUrl, { method: 'POST', headers, body: form, signal: controller.signal })
+          .then(async (res) => {
+            this.createAbortController = null;
+            if (!res.ok) {
+              const json = await res.json().catch(() => null);
+              observer.error(json || { status: res.status });
+              return;
+            }
+            const json = await res.json().catch(() => null);
+            observer.next(json);
+            observer.complete();
+          })
+          .catch((err) => {
+            this.createAbortController = null;
+            observer.error(err);
+          });
+
+        // Teardown: abort on unsubscribe
+        return () => {
+          if (this.createAbortController) {
+            this.createAbortController.abort();
+            this.createAbortController = null;
+          }
+        };
+      });
     }
 
     return this.http.post(
@@ -66,6 +103,13 @@ export class ReportesService {
       },
       { headers }
     );
+  }
+
+  cancelCrearReporte() {
+    if (this.createAbortController) {
+      this.createAbortController.abort();
+      this.createAbortController = null;
+    }
   }
 
   votar(reporteId: number, tipo: 'confirma' | 'falso'): Observable<any> {

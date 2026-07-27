@@ -31,7 +31,7 @@
 
 <!-- MODAL DE REPORTE -->
 @if (mostrarModal) {
-  <div class="modal-overlay" (click)="cerrarModal()">
+  <div class="modal-overlay" (click)="!enviando && cerrarModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       
       @if (!mensajeExito) {
@@ -44,7 +44,7 @@
               </svg>
             </span>
             <h3>Reportar Incidente</h3>
-            <button class="modal-close" (click)="cerrarModal()">
+            <button class="modal-close" (click)="!enviando && cerrarModal()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -116,7 +116,7 @@
             <button type="submit" class="btn-enviar" [disabled]="enviando">
               {{ enviando ? 'Enviando...' : 'Enviar reporte anonimo' }}
             </button>
-            <button type="button" class="btn-cancelar" (click)="cerrarModal()">Cancelar</button>
+            <button type="button" class="btn-cancelar" (click)="cancelEnvio()">{{ enviando ? 'Cancelar envío' : 'Cancelar' }}</button>
           </form>
         </div>
       }

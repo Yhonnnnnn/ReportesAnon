@@ -36,6 +36,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
   mensajeExito = false;
   enviando = false;
   errorEnvio = '';
+  private currentRequest: any = null;
 
   // Modal detalle de reporte existente
   reporteDetalle: Reporte | null = null;
@@ -285,7 +286,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
     this.enviando = true;
     this.errorEnvio = '';
 
-    this.reportesService.crearReporte({
+    this.currentRequest = this.reportesService.crearReporte({
       categoria: this.reporte.categoria,
       descripcion: this.reporte.descripcion,
       latitud: this.selectedCoords.lat,
@@ -294,6 +295,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
     }).subscribe({
       next: (res) => {
         this.enviando = false;
+        this.currentRequest = null;
         this.mensajeExito = true;
 
         // Recargar reportes desde el servidor para evitar duplicados
@@ -312,16 +314,44 @@ export class Mapa implements AfterViewInit, OnDestroy {
       },
       error: (err) => {
         this.enviando = false;
-        // Si es error de timeout, mostrar mensaje más claro
-        const msg = err.name === 'TimeoutError'
-          ? 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.'
-          : err?.error?.error || 'No se pudo enviar el reporte, intenta de nuevo';
+        this.currentRequest = null;
+        console.error('Error al enviar reporte:', err);
+
+        // Manejo robusto de distintos formatos de error (HttpClient, fetch, Timeout)
+        const status = err?.status || err?.statusCode || null;
+        let msg = 'No se pudo enviar el reporte, intenta de nuevo';
+
+        if (status === 429) {
+          msg = 'El servidor está recibiendo muchos envíos (429). Intenta de nuevo más tarde.';
+        } else if (err && err.name === 'TimeoutError') {
+          msg = 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.';
+        } else if (err && err.error && typeof err.error === 'string') {
+          msg = err.error;
+        } else if (err && err.error && err.error.error) {
+          msg = err.error.error;
+        } else if (err && err.message) {
+          msg = err.message;
+        }
+
         this.errorEnvio = msg;
       }
     });
   }
 
   cerrarModal() {
+    // Si hay una petición en curso, cancelar para que la UI no quede en "Enviando"
+    // Intentar abortar la petición a nivel de servicio (fetch + AbortController)
+    try { this.reportesService.cancelCrearReporte(); } catch {};
+
+    if (this.currentRequest && typeof this.currentRequest.unsubscribe === 'function') {
+      this.currentRequest.unsubscribe();
+      this.currentRequest = null;
+      this.errorEnvio = 'Envío cancelado por el usuario.';
+    }
+
+    // Asegurar que el estado visual de envío se limpia al cerrar
+    this.enviando = false;
+
     this.mostrarModal = false;
     this.mostrarPopup = false;
     this.mensajeExito = false;
@@ -334,6 +364,25 @@ export class Mapa implements AfterViewInit, OnDestroy {
       this.map.removeLayer(this.markerTemporal);
       this.markerTemporal = null;
     }
+  }
+
+  cancelEnvio() {
+    if (this.enviando) {
+      // Abort the underlying upload if any
+      try { this.reportesService.cancelCrearReporte(); } catch {}
+      if (this.currentRequest && typeof this.currentRequest.unsubscribe === 'function') {
+        this.currentRequest.unsubscribe();
+        this.currentRequest = null;
+      }
+      this.enviando = false;
+      this.errorEnvio = 'Envío cancelado por el usuario.';
+      // Close modal after cancel
+      this.mostrarModal = false;
+      return;
+    }
+
+    // If not sending, just close normally
+    this.cerrarModal();
   }
 
   cerrarPopup() {
