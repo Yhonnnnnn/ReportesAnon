@@ -1,5 +1,5 @@
-# Etapa de compilación
-FROM node:22.22.3 AS build
+# ---------- Build ----------
+FROM node:24.15.0 AS build
 
 WORKDIR /app
 
@@ -7,9 +7,10 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
 RUN npm run build
 
-# Etapa de producción
+# ---------- Producción ----------
 FROM nginx:alpine
 
 COPY --from=build /app/dist/ReportesAnonimos/browser /usr/share/nginx/html
