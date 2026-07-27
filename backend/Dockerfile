@@ -1,20 +1,18 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
 # Instalar extensiones necesarias
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Deshabilitar mpm_event y habilitar mpm_prefork (necesario para mod_rewrite)
-RUN a2dismod mpm_event && \
-    a2enmod mpm_prefork && \
-    a2enmod rewrite
-
-# Copiar todos los archivos del backend al directorio web
-COPY . /var/www/html/
+# Copiar archivos
+COPY . /app
+WORKDIR /app
 
 # Asegurar permisos en uploads
-RUN chown -R www-data:www-data /var/www/html/uploads && \
-    chmod -R 755 /var/www/html/uploads
+RUN chown -R www-data:www-data /app/uploads && \
+    chmod -R 755 /app/uploads
 
-EXPOSE 80
+# El puerto lo asigna Railway via $PORT
+EXPOSE $PORT
 
-CMD ["apache2-foreground"]
+# Servir con PHP embebido (usa el puerto que Railway asigne)
+CMD php -S 0.0.0.0:${PORT:-80} -t /app
