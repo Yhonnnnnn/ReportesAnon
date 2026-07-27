@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -32,7 +32,7 @@ export class Login implements AfterViewInit, OnDestroy {
   private ultimoFrame = 0;
   private readonly resizeHandler = () => this.redimensionarCanvas();
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
     this.inicializarAnimacionFondo();
@@ -208,7 +208,10 @@ export class Login implements AfterViewInit, OnDestroy {
         : this.auth.registrar(this.correo, this.password, this.alias);
 
     accion$
-      .pipe(finalize(() => (this.cargando = false))) // pase lo que pase, nunca se queda "procesando"
+      .pipe(finalize(() => {
+        this.cargando = false;
+        this.cdr.detectChanges(); // sin esto, en esta app (zoneless) el botón se queda en "Procesando..."
+      }))
       .subscribe({
         next: () => this.router.navigateByUrl('/'),
         error: (err) => {
@@ -216,6 +219,7 @@ export class Login implements AfterViewInit, OnDestroy {
 
           if (err?.name === 'TimeoutError') {
             this.error = 'El servidor no responde. Revisa que el backend (Apache/Railway) y la base de datos estén activos.';
+            this.cdr.detectChanges();
             return;
           }
 
@@ -227,10 +231,12 @@ export class Login implements AfterViewInit, OnDestroy {
             } else {
               this.error = err.error?.error || 'Ocurrió un error en el servidor, intenta de nuevo.';
             }
+            this.cdr.detectChanges();
             return;
           }
 
           this.error = 'Ocurrió un error, intenta de nuevo';
+          this.cdr.detectChanges();
         }
       });
   }

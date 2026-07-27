@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnDestroy, ViewEncapsulation, NgZone } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ViewEncapsulation, NgZone, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
@@ -51,7 +51,8 @@ export class Mapa implements AfterViewInit, OnDestroy {
     private sanitizer: DomSanitizer,
     public auth: AuthService,
     private router: Router,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngAfterViewInit(): void {
@@ -219,6 +220,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.pintarReportes(reportes);
         this.guardarCache(reportes);
         this.actualizarUltimaFecha(reportes);
+        this.cdr.detectChanges();
       },
       error: () => {}
     });
@@ -244,6 +246,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.guardarCache(this.reportesCache);
         this.actualizarUltimaFecha(nuevos);
         this.filtrarPanel(this.filtroPanel);
+        this.cdr.detectChanges();
       },
       error: () => {}
     });
@@ -297,6 +300,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.enviando = false;
         this.currentRequest = null;
         this.mensajeExito = true;
+        this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
 
         // Recargar reportes desde el servidor para evitar duplicados
         this.reportesService.obtenerReportes().subscribe({
@@ -306,6 +310,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
             this.guardarCache(reportes);
             this.actualizarUltimaFecha(reportes);
             this.filtrarPanel(this.filtroPanel);
+            this.cdr.detectChanges();
           },
           error: () => {}
         });
@@ -321,19 +326,21 @@ export class Mapa implements AfterViewInit, OnDestroy {
         const status = err?.status || err?.statusCode || null;
         let msg = 'No se pudo enviar el reporte, intenta de nuevo';
 
-        if (status === 429) {
+        if (err && err.error && typeof err.error === 'string') {
+          msg = err.error;
+        } else if (err && err.error && err.error.error) {
+          // Mensaje específico que manda el backend (ej. límite diario alcanzado)
+          msg = err.error.error;
+        } else if (status === 429) {
           msg = 'El servidor está recibiendo muchos envíos (429). Intenta de nuevo más tarde.';
         } else if (err && err.name === 'TimeoutError') {
           msg = 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.';
-        } else if (err && err.error && typeof err.error === 'string') {
-          msg = err.error;
-        } else if (err && err.error && err.error.error) {
-          msg = err.error.error;
         } else if (err && err.message) {
           msg = err.message;
         }
 
         this.errorEnvio = msg;
+        this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
       }
     });
   }
@@ -364,6 +371,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
       this.map.removeLayer(this.markerTemporal);
       this.markerTemporal = null;
     }
+    this.cdr.detectChanges(); // idem: cierra el modal aunque venga de un setTimeout
   }
 
   cancelEnvio() {
@@ -378,6 +386,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
       this.errorEnvio = 'Envío cancelado por el usuario.';
       // Close modal after cancel
       this.mostrarModal = false;
+      this.cdr.detectChanges();
       return;
     }
 
@@ -407,6 +416,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         reporte.confirmaciones = res.confirmaciones;
         reporte.marcasFalso = res.marcasFalso;
         this.guardarCache(this.reportesCache);
+        this.cdr.detectChanges();
       },
       error: () => {}
     });

@@ -2,6 +2,9 @@
     "name": "alerta-ecuador/backend",
     "description": "Backend PHP de Alerta Ecuador (API de reportes, autenticación y votos)",
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "ext-gd": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
     }
 }
