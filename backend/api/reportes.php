@@ -70,17 +70,26 @@ switch ($method) {
             exit;
         }
 
-        $evidenciaPath = null;
-        if ($esMultipart && !empty($_FILES['evidencia']['tmp_name'])) {
-            $evidenciaPath = guardarEvidencia($_FILES['evidencia']);
-            if ($evidenciaPath === false) {
-                http_response_code(400);
-                echo json_encode(['error' => 'La evidencia debe ser una imagen JPG, PNG o WEBP de máximo 5MB']);
-                exit;
-            }
-        }
-
+        // OJO: todo el bloque (incluyendo guardarEvidencia, que usa GD) queda
+        // dentro de este try/catch(Throwable). Antes, si a la extensión gd le
+        // faltaba algo, PHP lanzaba un "Fatal Error" (no una Exception normal),
+        // eso rompía el script ANTES de llegar al INSERT, y por eso el reporte
+        // nunca quedaba guardado en la base -- sin ningún mensaje claro de qué
+        // pasó. catch (Throwable) sí atrapa ese tipo de error también.
         try {
+            $evidenciaPath = null;
+            if ($esMultipart && !empty($_FILES['evidencia']['tmp_name'])) {
+                if (!extension_loaded('gd')) {
+                    throw new Exception('La extensión gd de PHP no está instalada en el servidor (no se puede procesar la imagen).');
+                }
+                $evidenciaPath = guardarEvidencia($_FILES['evidencia']);
+                if ($evidenciaPath === false) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'La evidencia debe ser una imagen JPG, PNG o WEBP de máximo 5MB']);
+                    exit;
+                }
+            }
+
             $stmt = $db->prepare(
                 "INSERT INTO reportes (categoria, descripcion, latitud, longitud, fecha, evidencia_path)
                  VALUES (?, ?, ?, ?, NOW(), ?)"
@@ -94,9 +103,9 @@ switch ($method) {
                 'id' => $id,
                 'message' => 'Reporte guardado exitosamente'
             ]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['error' => 'Error guardando el reporte: ' . $e->getMessage()]);
         }
         break;
 
