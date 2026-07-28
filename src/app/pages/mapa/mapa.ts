@@ -41,6 +41,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
   // Modal detalle de reporte existente
   reporteDetalle: Reporte | null = null;
   mostrarDetalle = false;
+  evidenciaRevelada = false; // se resetea cada vez que se abre un reporte: la evidencia siempre arranca borrosa
 
   // Contador de reportes
   totalReportes = 0;
@@ -462,7 +463,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
     const fechaFormateada = new Date(fecha).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const evidenciaHtml = evidenciaUrl
-      ? `<a href="${evidenciaUrl}" target="_blank" style="display:block;margin:8px 0;"><img src="${evidenciaUrl}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;" /></a>`
+      ? `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;margin:6px 0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Incluye evidencia fotográfica</div>`
       : '';
 
     const marker = this.crearMarcadorPulso([latitud, longitud])
@@ -600,6 +601,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         if (reporte) {
           this.reporteDetalle = reporte;
           this.mostrarDetalle = true;
+          this.evidenciaRevelada = false;
         }
       });
     });
@@ -637,11 +639,13 @@ export class Mapa implements AfterViewInit, OnDestroy {
   seleccionarReportePanel(reporte: Reporte) {
     this.reporteDetalle = reporte;
     this.mostrarDetalle = true;
+    this.evidenciaRevelada = false;
   }
 
   cerrarDetalleMapa() {
     this.mostrarDetalle = false;
     this.reporteDetalle = null;
+    this.evidenciaRevelada = false;
   }
 
   centrarMapaEnReporte(reporte: Reporte) {

@@ -990,6 +990,7 @@
 }
 
 .detalle-evidencia {
+    position: relative;
     display: block;
     margin: 14px 0;
     border-radius: 10px;
@@ -1002,6 +1003,52 @@
     max-height: 220px;
     object-fit: cover;
     display: block;
+    transition: filter 0.25s ease;
+}
+
+.detalle-evidencia.borrosa img {
+    filter: blur(20px);
+    transform: scale(1.08); // evita que se note un borde nítido en las orillas
+}
+
+.detalle-evidencia-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.detalle-evidencia-overlay p {
+    margin: 0;
+    color: #f1f1f4;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+    max-width: 220px;
+}
+
+.btn-ver-evidencia {
+    background: linear-gradient(135deg, #e53935, #c62828);
+    color: #fff;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(229, 57, 53, 0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-ver-evidencia:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(229, 57, 53, 0.45);
 }
 
 .detalle-votos {
