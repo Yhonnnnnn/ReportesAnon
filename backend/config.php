@@ -1,136 +1,166 @@
 <?php
-// ===== Configuración de la base de datos =====
-// En LOCAL (XAMPP/WAMP) se usan los valores por defecto de abajo.
-// En RAILWAY, el servicio de MySQL inyecta automáticamente estas variables
-// de entorno (MYSQLHOST, MYSQLUSER, etc.) — no hay que tocar nada aquí,
-// getenv() las toma solas si existen.
-define('DB_HOST', getenv('MYSQLHOST') ?: 'localhost');
-define('DB_PORT', getenv('MYSQLPORT') ?: '3306');
-define('DB_USER', getenv('MYSQLUSER') ?: 'root');
-define('DB_PASS', getenv('MYSQLPASSWORD') ?: '');
-define('DB_NAME', getenv('MYSQLDATABASE') ?: 'reportes_anonimos');
+require_once __DIR__ . '/../config.php';
 
-// ===== Clave para hashear el correo =====
-// Cambia este valor por una cadena larga y aleatoria propia, y NO la compartas
-// ni la subas a un repositorio público. El correo nunca se guarda en texto plano.
-// En Railway: ponla como variable de entorno EMAIL_PEPPER en el servicio backend.
-define('EMAIL_PEPPER', getenv('EMAIL_PEPPER') ?: 'CAMBIA_ESTO_POR_UN_VALOR_SECRETO_LARGO_Y_UNICO');
+$method = $_SERVER['REQUEST_METHOD'];
+$db = getDB();
 
-// ===== Límites anti-spam =====
-define('MAX_REPORTES_POR_DIA', 8);
+switch ($method) {
+    case 'GET':
+        // Obtener reportes activos. Si viene ?desde=<fecha ISO>, solo trae
+        // los reportes nuevos desde esa fecha (esto es lo que usa el mapa
+        // para el "tiempo real": cada pocos segundos pregunta solo por lo nuevo).
+        try {
+            $desde = $_GET['desde'] ?? null;
 
-// Carpeta donde se guarda la evidencia opcional (fotos) de los reportes.
-// La URL pública se arma sola a partir de cómo llegó la petición, así que
-// funciona igual en localhost que en el dominio que te da Railway.
-// Railway expone automáticamente la ruta del Volume en
-// RAILWAY_VOLUME_MOUNT_PATH. Así las fotos se guardan en el disco persistente
-// sin depender de una ruta fija. UPLOADS_DIR permite sobrescribirla si hace
-// falta. Fuera de Railway se conserva la carpeta local del proyecto.
-$rutaVolumeRailway = getenv('RAILWAY_VOLUME_MOUNT_PATH');
-$rutaUploads = getenv('UPLOADS_DIR')
-    ?: ($rutaVolumeRailway ? rtrim($rutaVolumeRailway, '/\\') . '/uploads' : __DIR__ . '/uploads');
-define('UPLOADS_DIR', rtrim($rutaUploads, '/\\'));
-$esquema = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-// dirname(dirname(...)) quita "/api/archivo.php" y deja la carpeta "backend",
-// sea que esté en la raíz del dominio (Railway) o anidada (XAMPP local).
-$rutaBase = str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '')));
-if ($rutaBase === '.' || $rutaBase === '/') {
-    $rutaBase = '';
+            if ($desde) {
+                $stmt = $db->prepare(
+                    "SELECT id, categoria, descripcion, latitud, longitud, fecha, evidencia_path,
+                            confirmaciones, marcas_falso
+                     FROM reportes
+                     WHERE estado = 'activo' AND fecha > ?
+                     ORDER BY fecha DESC"
+                );
+                $stmt->execute([$desde]);
+            } else {
+                $stmt = $db->query(
+                    "SELECT id, categoria, descripcion, latitud, longitud, fecha, evidencia_path,
+                            confirmaciones, marcas_falso
+                     FROM reportes
+                     WHERE estado = 'activo'
+                     ORDER BY fecha DESC"
+                );
+            }
+
+            $reportes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($reportes as &$r) {
+                // La evidencia se entrega mediante PHP para que funcione
+                // aunque UPLOADS_DIR sea un Volume fuera del document root.
+                $r['evidenciaUrl'] = $r['evidencia_path']
+                    ? substr(UPLOADS_URL, 0, -strlen('/uploads')) . '/api/evidencia.php?archivo=' . rawurlencode($r['evidencia_path'])
+                    : null;
+                unset($r['evidencia_path']);
+            }
+            echo json_encode($reportes);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+        break;
+
+    case 'POST':
+        // Crear un nuevo reporte. Requiere sesión iniciada (evita reportes
+        // de bots/anónimos totales), pero el reporte en sí NO se guarda
+        // ligado al usuario que lo hizo.
+        $userId = exigirAutenticacion($db);
+
+        if (!puedeEnviarReporte($db, $userId)) {
+            http_response_code(429);
+            echo json_encode(['error' => 'Alcanzaste el límite de reportes por hoy. Intenta más tarde.']);
+            exit;
+        }
+
+        // Puede llegar como JSON (sin evidencia) o multipart/form-data (con evidencia)
+        $esMultipart = str_starts_with($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data');
+        $input = $esMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+
+        $categoria = trim($input['categoria'] ?? '');
+        $descripcion = trim($input['descripcion'] ?? '');
+        $latitud = $input['latitud'] ?? null;
+        $longitud = $input['longitud'] ?? null;
+
+        if (!$categoria || !$descripcion || !$latitud || !$longitud) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Todos los campos son obligatorios']);
+            exit;
+        }
+
+        // OJO: todo el bloque (incluyendo guardarEvidencia, que usa GD) queda
+        // dentro de este try/catch(Throwable). Antes, si a la extensión gd le
+        // faltaba algo, PHP lanzaba un "Fatal Error" (no una Exception normal),
+        // eso rompía el script ANTES de llegar al INSERT, y por eso el reporte
+        // nunca quedaba guardado en la base -- sin ningún mensaje claro de qué
+        // pasó. catch (Throwable) sí atrapa ese tipo de error también.
+        try {
+            $evidenciaPath = null;
+            if ($esMultipart && !empty($_FILES['evidencia']['tmp_name'])) {
+                if (!extension_loaded('gd')) {
+                    throw new Exception('La extensión gd de PHP no está instalada en el servidor (no se puede procesar la imagen).');
+                }
+                $evidenciaPath = guardarEvidencia($_FILES['evidencia']);
+                if ($evidenciaPath === false) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'La evidencia debe ser una imagen JPG, PNG o WEBP de máximo 5MB']);
+                    exit;
+                }
+            }
+
+            $stmt = $db->prepare(
+                "INSERT INTO reportes (categoria, descripcion, latitud, longitud, fecha, evidencia_path)
+                 VALUES (?, ?, ?, ?, NOW(), ?)"
+            );
+            $stmt->execute([$categoria, $descripcion, $latitud, $longitud, $evidenciaPath]);
+
+            $id = $db->lastInsertId();
+
+            echo json_encode([
+                'success' => true,
+                'id' => $id,
+                'message' => 'Reporte guardado exitosamente'
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Error guardando el reporte: ' . $e->getMessage()]);
+        }
+        break;
+
+    default:
+        http_response_code(405);
+        echo json_encode(['error' => 'Método no permitido']);
+        break;
 }
-define('UPLOADS_URL', $esquema . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $rutaBase . '/uploads');
 
-// Conexión a MySQL
-function getDB() {
-    try {
-        $pdo = new PDO(
-            "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-            DB_USER,
-            DB_PASS,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-        return $pdo;
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Error de conexión a la base de datos: ' . $e->getMessage()]);
-        exit;
-    }
-}
-
-// Configurar headers CORS
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-// ===== Helpers de autenticación =====
-// Sistema de sesión simple por token (sin librerías externas).
-// El token NUNCA contiene datos del usuario: es solo una cadena aleatoria
-// que se busca en la tabla `sesiones`.
-
-function generarToken(): string {
-    return bin2hex(random_bytes(32)); // 64 caracteres
-}
-
-// Hash de un solo sentido para el correo: no se puede revertir a partir de
-// la base de datos, solo sirve para comparar "¿este correo ya existe?".
-function hashCorreo(string $email): string {
-    return hash_hmac('sha256', mb_strtolower(trim($email)), EMAIL_PEPPER);
-}
-
-// Devuelve el id del usuario autenticado o null si no hay token válido.
-function usuarioAutenticado(PDO $db): ?int {
-    $headers = getallheaders();
-    $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-
-    if (!preg_match('/Bearer\s+(\S+)/', $auth, $m)) {
-        return null;
-    }
-
-    $token = $m[1];
-    $stmt = $db->prepare(
-        "SELECT usuario_id FROM sesiones WHERE token = ? AND expira > NOW()"
-    );
-    $stmt->execute([$token]);
-    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    return $fila ? (int) $fila['usuario_id'] : null;
-}
-
-// Exige que haya un usuario autenticado; si no, corta la ejecución con 401.
-function exigirAutenticacion(PDO $db): int {
-    $userId = usuarioAutenticado($db);
-    if (!$userId) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Debes iniciar sesión para hacer esto']);
-        exit;
-    }
-    return $userId;
-}
-
-// Anti-spam: revisa y actualiza el contador de envíos del día para un
-// usuario. Devuelve true si todavía puede enviar, false si llegó al límite.
-// No guarda relación con reportes concretos, solo un contador por día.
-function puedeEnviarReporte(PDO $db, int $usuarioId): bool {
-    $hoy = date('Y-m-d');
-
-    $stmt = $db->prepare("SELECT contador FROM limite_envios WHERE usuario_id = ? AND fecha = ?");
-    $stmt->execute([$usuarioId, $hoy]);
-    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($fila && (int) $fila['contador'] >= MAX_REPORTES_POR_DIA) {
+// Guarda la imagen de evidencia RE-CODIFICÁNDOLA con GD. Esto tiene un efecto
+// clave de privacidad: al volver a generar el archivo a partir de los píxeles,
+// se eliminan los metadatos EXIF originales (que pueden incluir la ubicación
+// GPS exacta donde se tomó la foto y el modelo del celular). Devuelve el
+// nombre del archivo guardado, o false si el archivo no es válido.
+function guardarEvidencia(array $archivo) {
+    $tamañoMaximo = 5 * 1024 * 1024; // 5MB
+    if ($archivo['size'] > $tamañoMaximo || $archivo['error'] !== UPLOAD_ERR_OK) {
         return false;
     }
 
-    $stmt = $db->prepare(
-        "INSERT INTO limite_envios (usuario_id, fecha, contador) VALUES (?, ?, 1)
-         ON DUPLICATE KEY UPDATE contador = contador + 1"
-    );
-    $stmt->execute([$usuarioId, $hoy]);
+    $info = @getimagesize($archivo['tmp_name']);
+    if (!$info) {
+        return false;
+    }
 
-    return true;
+    if (!is_dir(UPLOADS_DIR)) {
+        mkdir(UPLOADS_DIR, 0755, true);
+    }
+
+    $nombre = bin2hex(random_bytes(16));
+
+    switch ($info['mime']) {
+        case 'image/jpeg':
+            $img = imagecreatefromjpeg($archivo['tmp_name']);
+            $destino = "$nombre.jpg";
+            imagejpeg($img, UPLOADS_DIR . '/' . $destino, 85);
+            break;
+        case 'image/png':
+            $img = imagecreatefrompng($archivo['tmp_name']);
+            $destino = "$nombre.png";
+            imagepng($img, UPLOADS_DIR . '/' . $destino);
+            break;
+        case 'image/webp':
+            $img = imagecreatefromwebp($archivo['tmp_name']);
+            $destino = "$nombre.webp";
+            imagewebp($img, UPLOADS_DIR . '/' . $destino, 85);
+            break;
+        default:
+            return false;
+    }
+
+    imagedestroy($img);
+    return $destino;
 }
