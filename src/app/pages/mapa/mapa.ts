@@ -3,12 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import * as L from 'leaflet';
+import type * as Leaflet from 'leaflet';
+import type { } from 'leaflet.markercluster';
 import { ReportesService, Reporte } from './reportes.service';
 import { PerfilUsuario } from '../../components/perfil-usuario/perfil-usuario';
 import { AuthService } from '../../services/auth.service';
 
 const INTERVALO_POLLING_MS = 8000;
+
+// Leaflet y MarkerCluster se cargan como scripts globales en angular.json.
+// Así ambos usan exactamente la misma instancia de L en producción.
+declare const L: typeof Leaflet;
 
 @Component({
   selector: 'app-mapa',
@@ -20,8 +25,7 @@ const INTERVALO_POLLING_MS = 8000;
 export class Mapa implements AfterViewInit, OnDestroy {
 
   private map!: L.Map;
-  // Grupo nativo: el plugin markercluster no se inicializa en producción.
-  private clusterGroup!: L.LayerGroup;
+  private clusterGroup!: import('leaflet').MarkerClusterGroup;
   private marcadores = new Map<number, L.Marker>();
   private markerTemporal: L.Marker | null = null;
   private pollingId: any = null;
@@ -86,8 +90,21 @@ export class Mapa implements AfterViewInit, OnDestroy {
       }
     ).addTo(this.map);
 
-    // Grupo nativo y estable de Leaflet para los marcadores de reportes.
-    this.clusterGroup = L.layerGroup().addTo(this.map);
+    this.clusterGroup = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 55,
+      iconCreateFunction: (cluster) => {
+        const cantidad = cluster.getChildCount();
+        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
+        return L.divIcon({
+          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
+          className: '',
+          iconSize: L.point(tamaño, tamaño)
+        });
+      }
+    });
+    this.map.addLayer(this.clusterGroup);
 
     this.agregarBuscadorOSM();
 
