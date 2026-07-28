@@ -56,7 +56,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
     private router: Router,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngAfterViewInit(): void {
     this.inicializarMapa();
@@ -77,8 +77,6 @@ export class Mapa implements AfterViewInit, OnDestroy {
       zoomControl: false
     });
 
-    setTimeout(() => this.map.invalidateSize(), 0);
-
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
     L.tileLayer(
@@ -96,17 +94,12 @@ export class Mapa implements AfterViewInit, OnDestroy {
       spiderfyOnMaxZoom: true,
       maxClusterRadius: 55,
       iconCreateFunction: (cluster) => {
-        const tamaño = 50;
+        const cantidad = cluster.getChildCount();
+        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
         return L.divIcon({
-          html: `
-            <div class="cluster-pulso">
-              <div class="cluster-pulso-anim"></div>
-              <div class="cluster-punto"></div>
-            </div>
-          `,
-          className: 'cluster-marcador',
-          iconSize: L.point(tamaño, tamaño),
-          iconAnchor: [tamaño / 2, tamaño / 2]
+          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
+          className: '',
+          iconSize: L.point(tamaño, tamaño)
         });
       }
     });
@@ -251,7 +244,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.actualizarUltimaFecha(reportes);
         this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
   }
 
@@ -277,7 +270,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.filtrarPanel(this.filtroPanel);
         this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
   }
 
@@ -295,10 +288,6 @@ export class Mapa implements AfterViewInit, OnDestroy {
     reportes.forEach((r) => this.agregarMarcadorReporte(r));
     this.totalReportes = this.marcadores.size;
     this.actualizarContador();
-
-    if (!this.ultimaFecha && reportes.length > 0) {
-      this.ajustarVistaReportes(reportes);
-    }
   }
 
   private leerCache(): Reporte[] {
@@ -352,7 +341,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
               this.filtrarPanel(this.filtroPanel);
               this.cdr.detectChanges();
             },
-            error: () => {}
+            error: () => { }
           });
 
           setTimeout(() => { this.cerrarModal(); }, 1500);
@@ -396,7 +385,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
   cerrarModal() {
     // Si hay una petición en curso, cancelar para que la UI no quede en "Enviando"
     // Intentar abortar la petición a nivel de servicio (fetch + AbortController)
-    try { this.reportesService.cancelCrearReporte(); } catch {};
+    try { this.reportesService.cancelCrearReporte(); } catch { };
 
     if (this.currentRequest && typeof this.currentRequest.unsubscribe === 'function') {
       this.currentRequest.unsubscribe();
@@ -425,7 +414,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
   cancelEnvio() {
     if (this.enviando) {
       // Abort the underlying upload if any
-      try { this.reportesService.cancelCrearReporte(); } catch {}
+      try { this.reportesService.cancelCrearReporte(); } catch { }
       if (this.currentRequest && typeof this.currentRequest.unsubscribe === 'function') {
         this.currentRequest.unsubscribe();
         this.currentRequest = null;
@@ -466,7 +455,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         this.guardarCache(this.reportesCache);
         this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
   }
 
@@ -491,7 +480,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
     };
     const key = iconos[categoria] || 'alert';
     const svgIcono = svgIconos[key];
-    const categoriaLabel = {robo:'Robo/Asalto', secuestro:'Secuestro', extorsion:'Extorsion', sospechoso:'Sospechoso', otro:'Otro'}[categoria] || categoria;
+    const categoriaLabel = { robo: 'Robo/Asalto', secuestro: 'Secuestro', extorsion: 'Extorsion', sospechoso: 'Sospechoso', otro: 'Otro' }[categoria] || categoria;
     const fechaFormateada = new Date(fecha).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const evidenciaHtml = evidenciaUrl
@@ -529,22 +518,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
       iconAnchor: [15, 15]
     });
 
-    return L.marker(coords, { icon, zIndexOffset: 1000 });
-  }
-
-  private ajustarVistaReportes(reportes: Reporte[]) {
-    if (!this.map) return;
-
-    const coordenadas = reportes
-      .filter((r) => Number.isFinite(r.latitud) && Number.isFinite(r.longitud))
-      .map((r) => [Number(r.latitud), Number(r.longitud)] as [number, number]);
-
-    if (coordenadas.length === 0) return;
-
-    const bounds = L.latLngBounds(coordenadas);
-    if (bounds.isValid()) {
-      this.map.fitBounds(bounds.pad(0.2), { maxZoom: 13 });
-    }
+    return L.marker(coords, { icon });
   }
 
   private actualizarContador() {

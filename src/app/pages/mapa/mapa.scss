@@ -42,8 +42,15 @@
 }
 
 @keyframes pulse-icon {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.25); }
-    50% { box-shadow: 0 0 0 6px rgba(229, 57, 53, 0); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.25);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(229, 57, 53, 0);
+    }
 }
 
 .mapa-header-brand {
@@ -112,8 +119,13 @@
 }
 
 @media (max-width: 640px) {
-    .mapa-header-subtitle { display: none; }
-    .mapa-header-stats { display: none; }
+    .mapa-header-subtitle {
+        display: none;
+    }
+
+    .mapa-header-stats {
+        display: none;
+    }
 }
 
 /* ===== MAPA ===== */
@@ -138,7 +150,7 @@
     pointer-events: none;
 }
 
-.leaflet-control-container .leaflet-top.leaflet-left > * {
+.leaflet-control-container .leaflet-top.leaflet-left>* {
     pointer-events: auto;
 }
 
@@ -305,14 +317,9 @@
 }
 
 /* ===== MARCADOR DE PULSO ROJO ===== */
-.leaflet-marker-icon {
-    z-index: 1000 !important;
-}
-
 .marcador-pulso-container {
     background: transparent !important;
     border: none !important;
-    pointer-events: auto !important;
 }
 
 .marcador-pulso {
@@ -345,51 +352,34 @@
 }
 
 @keyframes pulsar {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(4); opacity: 0; }
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
 }
 
 /* ===== CÍRCULO DE AGRUPACIÓN (clustering) ===== */
-/* Al alejar el zoom, los reportes cercanos se agrupan en un marcador pulso grande;
-   al acercarte se separan de nuevo en marcadores individuales. */
-.cluster-marcador {
-    background: transparent !important;
-    border: none !important;
-    pointer-events: auto !important;
-}
-
-.cluster-pulso {
-    position: relative;
-    width: 50px;
-    height: 50px;
+/* Al alejar el zoom, los reportes cercanos se agrupan en este círculo con
+   contador; al acercarte se separan de nuevo en marcadores individuales. */
+.cluster-reportes {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.cluster-punto {
-    width: 18px;
-    height: 18px;
-    background: #e53935;
     border-radius: 50%;
-    box-shadow: 0 0 15px rgba(229, 57, 53, 0.8);
-    z-index: 2;
-    position: absolute;
-}
-
-.cluster-pulso-anim {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    background: rgba(229, 57, 53, 0.25);
-    border-radius: 50%;
-    animation: pulsar-cluster 2s ease-out infinite;
-    z-index: 1;
-}
-
-@keyframes pulsar-cluster {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(5); opacity: 0; }
+    background: radial-gradient(circle, rgba(229, 57, 53, 0.55), rgba(198, 40, 40, 0.85));
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 16px rgba(229, 57, 53, 0.55);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    font-family: 'Roboto', sans-serif;
 }
 
 /* ===== MODAL OSCURO ===== */
@@ -408,13 +398,23 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 
 .modal-content {
@@ -431,8 +431,15 @@
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .modal-header {
@@ -445,7 +452,9 @@
     border-radius: 16px 16px 0 0;
 }
 
-.modal-icon { font-size: 24px; }
+.modal-icon {
+    font-size: 24px;
+}
 
 .modal-header h3 {
     margin: 0;
@@ -478,11 +487,17 @@
     border-bottom: 1px solid #333;
 }
 
-.modal-body { padding-bottom: 8px; }
+.modal-body {
+    padding-bottom: 8px;
+}
 
-.modal-body form { padding: 16px 24px 24px; }
+.modal-body form {
+    padding: 16px 24px 24px;
+}
 
-.campo { margin-bottom: 16px; }
+.campo {
+    margin-bottom: 16px;
+}
 
 .campo label {
     display: block;
@@ -508,9 +523,14 @@
 }
 
 .campo select:focus,
-.campo textarea:focus { border-color: #e53935; }
+.campo textarea:focus {
+    border-color: #e53935;
+}
 
-.campo select option { background: #1e1e1e; color: #fff; }
+.campo select option {
+    background: #1e1e1e;
+    color: #fff;
+}
 
 .campo textarea {
     height: 90px;
@@ -624,9 +644,17 @@
 }
 
 @keyframes bounceIn {
-    0% { transform: scale(0); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .modal-exito h3 {
@@ -721,13 +749,23 @@
 }
 
 @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 @keyframes slideDown {
-    from { transform: translateY(0); }
-    to { transform: translateY(100%); }
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
 }
 
 .panel-reportes-header {
@@ -955,6 +993,7 @@
         opacity: 0;
         transform: scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
