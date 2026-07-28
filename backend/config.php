@@ -27,8 +27,15 @@ define('MAX_REPORTES_POR_DIA', 8);
 // sin depender de una ruta fija. UPLOADS_DIR permite sobrescribirla si hace
 // falta. Fuera de Railway se conserva la carpeta local del proyecto.
 $rutaVolumeRailway = getenv('RAILWAY_VOLUME_MOUNT_PATH');
-$rutaUploads = getenv('UPLOADS_DIR')
-    ?: ($rutaVolumeRailway ? rtrim($rutaVolumeRailway, '/\\') . '/uploads' : __DIR__ . '/uploads');
+$rutaUploads = getenv('UPLOADS_DIR');
+if (!$rutaUploads) {
+    if ($rutaVolumeRailway) {
+        $vol = rtrim($rutaVolumeRailway, '/\\');
+        $rutaUploads = (basename($vol) === 'uploads') ? $vol : $vol . '/uploads';
+    } else {
+        $rutaUploads = __DIR__ . '/uploads';
+    }
+}
 define('UPLOADS_DIR', rtrim($rutaUploads, '/\\'));
 $esquema = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 // dirname(dirname(...)) quita "/api/archivo.php" y deja la carpeta "backend",
