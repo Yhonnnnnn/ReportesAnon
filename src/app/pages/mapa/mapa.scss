@@ -305,9 +305,14 @@
 }
 
 /* ===== MARCADOR DE PULSO ROJO ===== */
+.leaflet-marker-icon {
+    z-index: 1000 !important;
+}
+
 .marcador-pulso-container {
     background: transparent !important;
     border: none !important;
+    pointer-events: auto !important;
 }
 
 .marcador-pulso {
@@ -345,22 +350,46 @@
 }
 
 /* ===== CÍRCULO DE AGRUPACIÓN (clustering) ===== */
-/* Al alejar el zoom, los reportes cercanos se agrupan en este círculo con
-   contador; al acercarte se separan de nuevo en marcadores individuales. */
-.cluster-reportes {
-    width: 100%;
-    height: 100%;
+/* Al alejar el zoom, los reportes cercanos se agrupan en un marcador pulso grande;
+   al acercarte se separan de nuevo en marcadores individuales. */
+.cluster-marcador {
+    background: transparent !important;
+    border: none !important;
+    pointer-events: auto !important;
+}
+
+.cluster-pulso {
+    position: relative;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.cluster-punto {
+    width: 18px;
+    height: 18px;
+    background: #e53935;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(229, 57, 53, 0.55), rgba(198, 40, 40, 0.85));
-    border: 2px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 16px rgba(229, 57, 53, 0.55);
-    color: #fff;
-    font-weight: 700;
-    font-size: 13px;
-    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 0 15px rgba(229, 57, 53, 0.8);
+    z-index: 2;
+    position: absolute;
+}
+
+.cluster-pulso-anim {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: rgba(229, 57, 53, 0.25);
+    border-radius: 50%;
+    animation: pulsar-cluster 2s ease-out infinite;
+    z-index: 1;
+}
+
+@keyframes pulsar-cluster {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(5); opacity: 0; }
 }
 
 /* ===== MODAL OSCURO ===== */

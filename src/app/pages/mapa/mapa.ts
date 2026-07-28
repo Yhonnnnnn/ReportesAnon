@@ -77,6 +77,8 @@ export class Mapa implements AfterViewInit, OnDestroy {
       zoomControl: false
     });
 
+    setTimeout(() => this.map.invalidateSize(), 0);
+
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
     L.tileLayer(
@@ -94,12 +96,17 @@ export class Mapa implements AfterViewInit, OnDestroy {
       spiderfyOnMaxZoom: true,
       maxClusterRadius: 55,
       iconCreateFunction: (cluster) => {
-        const cantidad = cluster.getChildCount();
-        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
+        const tamaño = 50;
         return L.divIcon({
-          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
-          className: '',
-          iconSize: L.point(tamaño, tamaño)
+          html: `
+            <div class="cluster-pulso">
+              <div class="cluster-pulso-anim"></div>
+              <div class="cluster-punto"></div>
+            </div>
+          `,
+          className: 'cluster-marcador',
+          iconSize: L.point(tamaño, tamaño),
+          iconAnchor: [tamaño / 2, tamaño / 2]
         });
       }
     });
@@ -288,6 +295,10 @@ export class Mapa implements AfterViewInit, OnDestroy {
     reportes.forEach((r) => this.agregarMarcadorReporte(r));
     this.totalReportes = this.marcadores.size;
     this.actualizarContador();
+
+    if (!this.ultimaFecha && reportes.length > 0) {
+      this.ajustarVistaReportes(reportes);
+    }
   }
 
   private leerCache(): Reporte[] {
@@ -518,7 +529,22 @@ export class Mapa implements AfterViewInit, OnDestroy {
       iconAnchor: [15, 15]
     });
 
-    return L.marker(coords, { icon });
+    return L.marker(coords, { icon, zIndexOffset: 1000 });
+  }
+
+  private ajustarVistaReportes(reportes: Reporte[]) {
+    if (!this.map) return;
+
+    const coordenadas = reportes
+      .filter((r) => Number.isFinite(r.latitud) && Number.isFinite(r.longitud))
+      .map((r) => [Number(r.latitud), Number(r.longitud)] as [number, number]);
+
+    if (coordenadas.length === 0) return;
+
+    const bounds = L.latLngBounds(coordenadas);
+    if (bounds.isValid()) {
+      this.map.fitBounds(bounds.pad(0.2), { maxZoom: 13 });
+    }
   }
 
   private actualizarContador() {
