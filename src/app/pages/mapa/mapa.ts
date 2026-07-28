@@ -4,7 +4,6 @@ import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as L from 'leaflet';
-import 'leaflet.markercluster';
 import { ReportesService, Reporte } from './reportes.service';
 import { PerfilUsuario } from '../../components/perfil-usuario/perfil-usuario';
 import { AuthService } from '../../services/auth.service';
@@ -21,7 +20,8 @@ const INTERVALO_POLLING_MS = 8000;
 export class Mapa implements AfterViewInit, OnDestroy {
 
   private map!: L.Map;
-  private clusterGroup!: L.MarkerClusterGroup;
+  // Grupo nativo: el plugin markercluster no se inicializa en producción.
+  private clusterGroup!: L.LayerGroup;
   private marcadores = new Map<number, L.Marker>();
   private markerTemporal: L.Marker | null = null;
   private pollingId: any = null;
@@ -77,8 +77,6 @@ export class Mapa implements AfterViewInit, OnDestroy {
       zoomControl: false
     });
 
-    setTimeout(() => this.map.invalidateSize(), 0);
-
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
     L.tileLayer(
@@ -88,24 +86,8 @@ export class Mapa implements AfterViewInit, OnDestroy {
       }
     ).addTo(this.map);
 
-    // Agrupa reportes cercanos en un solo círculo con contador cuando el
-    // zoom está alejado; al acercarte se van separando en marcadores
-    // individuales otra vez.
-    this.clusterGroup = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      maxClusterRadius: 55,
-      iconCreateFunction: (cluster) => {
-        const cantidad = cluster.getChildCount();
-        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
-        return L.divIcon({
-          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
-          className: '',
-          iconSize: L.point(tamaño, tamaño)
-        });
-      }
-    });
-    this.map.addLayer(this.clusterGroup);
+    // Grupo nativo y estable de Leaflet para los marcadores de reportes.
+    this.clusterGroup = L.layerGroup().addTo(this.map);
 
     this.agregarBuscadorOSM();
 
