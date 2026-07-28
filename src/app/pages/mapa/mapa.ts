@@ -4,6 +4,7 @@ import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as L from 'leaflet';
+import 'leaflet.markercluster';
 import { ReportesService, Reporte } from './reportes.service';
 import { PerfilUsuario } from '../../components/perfil-usuario/perfil-usuario';
 import { AuthService } from '../../services/auth.service';
@@ -20,6 +21,7 @@ const INTERVALO_POLLING_MS = 8000;
 export class Mapa implements AfterViewInit, OnDestroy {
 
   private map!: L.Map;
+  private clusterGroup!: L.MarkerClusterGroup;
   private marcadores = new Map<number, L.Marker>();
   private markerTemporal: L.Marker | null = null;
   private pollingId: any = null;
@@ -83,6 +85,25 @@ export class Mapa implements AfterViewInit, OnDestroy {
         attribution: '&copy; OpenStreetMap &copy; CARTO'
       }
     ).addTo(this.map);
+
+    // Agrupa reportes cercanos en un solo círculo con contador cuando el
+    // zoom está alejado; al acercarte se van separando en marcadores
+    // individuales otra vez.
+    this.clusterGroup = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 55,
+      iconCreateFunction: (cluster) => {
+        const cantidad = cluster.getChildCount();
+        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
+        return L.divIcon({
+          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
+          className: '',
+          iconSize: L.point(tamaño, tamaño)
+        });
+      }
+    });
+    this.map.addLayer(this.clusterGroup);
 
     this.agregarBuscadorOSM();
 
@@ -262,7 +283,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
   }
 
   private pintarReportes(reportes: Reporte[]) {
-    this.marcadores.forEach((m) => this.map.removeLayer(m));
+    this.marcadores.forEach((m) => this.clusterGroup.removeLayer(m));
     this.marcadores.clear();
     reportes.forEach((r) => this.agregarMarcadorReporte(r));
     this.totalReportes = this.marcadores.size;
@@ -467,7 +488,6 @@ export class Mapa implements AfterViewInit, OnDestroy {
       : '';
 
     const marker = this.crearMarcadorPulso([latitud, longitud])
-      .addTo(this.map)
       .bindPopup(`
         <div style="color:#fff;background:#1e1e1e;padding:12px;border-radius:8px;min-width:220px;border:1px solid #333;">
           <div style="text-align:center;margin-bottom:4px;">${svgIcono}</div>
@@ -481,6 +501,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         </div>
       `);
 
+    this.clusterGroup.addLayer(marker);
     this.marcadores.set(id, marker);
   }
 
