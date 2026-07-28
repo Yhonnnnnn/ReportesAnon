@@ -289,60 +289,75 @@ export class Mapa implements AfterViewInit, OnDestroy {
     this.enviando = true;
     this.errorEnvio = '';
 
-    this.currentRequest = this.reportesService.crearReporte({
-      categoria: this.reporte.categoria,
-      descripcion: this.reporte.descripcion,
-      latitud: this.selectedCoords.lat,
-      longitud: this.selectedCoords.lng,
-      evidencia: this.evidenciaArchivo
-    }).subscribe({
-      next: (res) => {
-        this.enviando = false;
-        this.currentRequest = null;
-        this.mensajeExito = true;
-        this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
+    // Todo el envío queda dentro de un try/catch: si algo lanza una excepción
+    // de JS ANTES de llegar al fetch (por ejemplo al armar el FormData con la
+    // imagen), Angular podía dejar pasar el <form> como un envío nativo del
+    // navegador -> la página se recargaba y por eso nunca se veía el POST ni
+    // el error real. Ahora se atrapa, se muestra y el formulario jamás se
+    // envía de forma nativa.
+    try {
+      this.currentRequest = this.reportesService.crearReporte({
+        categoria: this.reporte.categoria,
+        descripcion: this.reporte.descripcion,
+        latitud: this.selectedCoords.lat,
+        longitud: this.selectedCoords.lng,
+        evidencia: this.evidenciaArchivo
+      }).subscribe({
+        next: (res) => {
+          this.enviando = false;
+          this.currentRequest = null;
+          this.mensajeExito = true;
+          this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
 
-        // Recargar reportes desde el servidor para evitar duplicados
-        this.reportesService.obtenerReportes().subscribe({
-          next: (reportes) => {
-            this.reportesCache = reportes;
-            this.pintarReportes(reportes);
-            this.guardarCache(reportes);
-            this.actualizarUltimaFecha(reportes);
-            this.filtrarPanel(this.filtroPanel);
-            this.cdr.detectChanges();
-          },
-          error: () => {}
-        });
+          // Recargar reportes desde el servidor para evitar duplicados
+          this.reportesService.obtenerReportes().subscribe({
+            next: (reportes) => {
+              this.reportesCache = reportes;
+              this.pintarReportes(reportes);
+              this.guardarCache(reportes);
+              this.actualizarUltimaFecha(reportes);
+              this.filtrarPanel(this.filtroPanel);
+              this.cdr.detectChanges();
+            },
+            error: () => {}
+          });
 
-        setTimeout(() => { this.cerrarModal(); }, 1500);
-      },
-      error: (err) => {
-        this.enviando = false;
-        this.currentRequest = null;
-        console.error('Error al enviar reporte:', err);
+          setTimeout(() => { this.cerrarModal(); }, 1500);
+        },
+        error: (err) => {
+          this.enviando = false;
+          this.currentRequest = null;
+          console.error('Error al enviar reporte:', err);
 
-        // Manejo robusto de distintos formatos de error (HttpClient, fetch, Timeout)
-        const status = err?.status || err?.statusCode || null;
-        let msg = 'No se pudo enviar el reporte, intenta de nuevo';
+          // Manejo robusto de distintos formatos de error (HttpClient, fetch, Timeout)
+          const status = err?.status || err?.statusCode || null;
+          let msg = 'No se pudo enviar el reporte, intenta de nuevo';
 
-        if (err && err.error && typeof err.error === 'string') {
-          msg = err.error;
-        } else if (err && err.error && err.error.error) {
-          // Mensaje específico que manda el backend (ej. límite diario alcanzado)
-          msg = err.error.error;
-        } else if (status === 429) {
-          msg = 'El servidor está recibiendo muchos envíos (429). Intenta de nuevo más tarde.';
-        } else if (err && err.name === 'TimeoutError') {
-          msg = 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.';
-        } else if (err && err.message) {
-          msg = err.message;
+          if (err && err.error && typeof err.error === 'string') {
+            msg = err.error;
+          } else if (err && err.error && err.error.error) {
+            // Mensaje específico que manda el backend (ej. límite diario alcanzado)
+            msg = err.error.error;
+          } else if (status === 429) {
+            msg = 'El servidor está recibiendo muchos envíos (429). Intenta de nuevo más tarde.';
+          } else if (err && err.name === 'TimeoutError') {
+            msg = 'El servidor tardó demasiado. El reporte pudo haberse guardado, recarga la página.';
+          } else if (err && err.message) {
+            msg = err.message;
+          }
+
+          this.errorEnvio = msg;
+          this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
         }
-
-        this.errorEnvio = msg;
-        this.cdr.detectChanges(); // sin esto el modal se queda "congelado" en Enviando
-      }
-    });
+      });
+    } catch (err: any) {
+      // Este catch es la parte clave del arreglo: si tronó armando el
+      // FormData/imagen antes del fetch, cae aquí en vez de recargar la página.
+      console.error('Excepción al preparar el envío del reporte:', err);
+      this.enviando = false;
+      this.errorEnvio = 'Error preparando el envío: ' + (err?.message || 'revisa la consola (F12)');
+      this.cdr.detectChanges();
+    }
   }
 
   cerrarModal() {
