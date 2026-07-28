@@ -556,6 +556,10 @@ export class Mapa implements AfterViewInit, OnDestroy {
           </div>
         `;
 
+        // Prevenir que los clicks dentro del buscador se propaguen al mapa (y no ponga el marcador temporal)
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+
         const input = container.querySelector('.search-input') as HTMLInputElement;
         const resultsDiv = container.querySelector('.search-results') as HTMLElement;
         let timeoutId: any;
