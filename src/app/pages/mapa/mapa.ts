@@ -95,12 +95,15 @@ export class Mapa implements AfterViewInit, OnDestroy {
       spiderfyOnMaxZoom: true,
       maxClusterRadius: 55,
       iconCreateFunction: (cluster) => {
-        const cantidad = cluster.getChildCount();
-        const tamaño = cantidad < 10 ? 38 : cantidad < 25 ? 46 : 56;
         return L.divIcon({
-          html: `<div class="cluster-reportes"><span>${cantidad}</span></div>`,
+          html: `
+            <div class="marcador-pulso marcador-pulso-cluster">
+              <div class="pulso"></div>
+              <div class="punto"></div>
+            </div>
+          `,
           className: '',
-          iconSize: L.point(tamaño, tamaño)
+          iconSize: L.point(38, 38)
         });
       }
     });
@@ -219,7 +222,14 @@ export class Mapa implements AfterViewInit, OnDestroy {
     this.errorEnvio = '';
 
     const reader = new FileReader();
-    reader.onload = () => { this.evidenciaPreview = reader.result as string; };
+    reader.onload = () => {
+      // FileReader termina fuera del ciclo de Angular; al entrar a la zona
+      // actualizamos el modal de inmediato, sin requerir otro clic.
+      this.ngZone.run(() => {
+        this.evidenciaPreview = reader.result as string;
+        this.cdr.detectChanges();
+      });
+    };
     reader.readAsDataURL(archivo);
   }
 

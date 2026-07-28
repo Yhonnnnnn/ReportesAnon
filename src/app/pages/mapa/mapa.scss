@@ -331,6 +331,18 @@
     justify-content: center;
 }
 
+/* Un grupo se dibuja igual que un reporte normal, solo un poco más grande. */
+.marcador-pulso.marcador-pulso-cluster {
+    width: 38px;
+    height: 38px;
+}
+
+.marcador-pulso-cluster .punto,
+.marcador-pulso-cluster .pulso {
+    width: 16px;
+    height: 16px;
+}
+
 .punto {
     width: 12px;
     height: 12px;
