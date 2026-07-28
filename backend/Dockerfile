@@ -19,9 +19,7 @@ COPY . /app
 # Railway reemplaza /data por el Volume persistente configurado en su panel.
 # La app guarda allí las evidencias mediante UPLOADS_DIR=/data/uploads.
 RUN mkdir -p /data/uploads \
-    && chown -R www-data:www-data /app /data
-
-USER www-data
+    && chmod -R 775 /app /data
 
 # Railway asigna el puerto público en la variable de entorno PORT.
 CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t /app"]

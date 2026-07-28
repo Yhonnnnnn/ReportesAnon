@@ -22,9 +22,14 @@ define('MAX_REPORTES_POR_DIA', 8);
 // Carpeta donde se guarda la evidencia opcional (fotos) de los reportes.
 // La URL pública se arma sola a partir de cómo llegó la petición, así que
 // funciona igual en localhost que en el dominio que te da Railway.
-// En Railway usa UPLOADS_DIR=/data/uploads y monta un Volume en /data.
-// Fuera de Railway se conserva la carpeta local del proyecto.
-define('UPLOADS_DIR', rtrim(getenv('UPLOADS_DIR') ?: (__DIR__ . '/uploads'), '/\\'));
+// Railway expone automáticamente la ruta del Volume en
+// RAILWAY_VOLUME_MOUNT_PATH. Así las fotos se guardan en el disco persistente
+// sin depender de una ruta fija. UPLOADS_DIR permite sobrescribirla si hace
+// falta. Fuera de Railway se conserva la carpeta local del proyecto.
+$rutaVolumeRailway = getenv('RAILWAY_VOLUME_MOUNT_PATH');
+$rutaUploads = getenv('UPLOADS_DIR')
+    ?: ($rutaVolumeRailway ? rtrim($rutaVolumeRailway, '/\\') . '/uploads' : __DIR__ . '/uploads');
+define('UPLOADS_DIR', rtrim($rutaUploads, '/\\'));
 $esquema = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 // dirname(dirname(...)) quita "/api/archivo.php" y deja la carpeta "backend",
 // sea que esté en la raíz del dominio (Railway) o anidada (XAMPP local).
