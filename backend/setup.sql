@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS reportes (
     descripcion TEXT NOT NULL,
     latitud DECIMAL(10, 7) NOT NULL,
     longitud DECIMAL(10, 7) NOT NULL,
+    zona VARCHAR(255) NULL,
     fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     anonimo TINYINT(1) NOT NULL DEFAULT 1,
     evidencia_path VARCHAR(255) NULL,

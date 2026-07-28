@@ -167,6 +167,12 @@
           <span class="detalle-label">Fecha</span>
           <span class="detalle-valor">{{ formatearFechaPanel(reporteDetalle.fecha) }}</span>
         </div>
+        @if (reporteDetalle.zona) {
+          <div class="detalle-item" style="grid-column: 1 / -1;">
+            <span class="detalle-label">Zona</span>
+            <span class="detalle-valor">{{ reporteDetalle.zona }}</span>
+          </div>
+        }
         <div class="detalle-item">
           <span class="detalle-label">Latitud</span>
           <span class="detalle-valor">{{ reporteDetalle.latitud | number:'1.6-6' }}</span>
@@ -265,7 +271,7 @@
             <p class="comentario-texto">{{ reporte.descripcion }}</p>
             <div class="comentario-ubicacion">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21s-8-7-8-11a8 8 0 1 1 16 0c0 4-8 11-8 11z"/></svg>
-              {{ (reporte.latitud | number:'1.4-4') + ', ' + (reporte.longitud | number:'1.4-4') }}
+              {{ reporte.zona ? reporte.zona : (reporte.latitud | number:'1.4-4') + ', ' + (reporte.longitud | number:'1.4-4') }}
             </div>
           </div>
         </div>

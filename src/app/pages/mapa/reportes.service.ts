@@ -10,6 +10,7 @@ export interface Reporte {
   descripcion: string;
   latitud: number;
   longitud: number;
+  zona: string | null;
   fecha: string;
   evidenciaUrl: string | null;
   confirmaciones: number;
@@ -21,6 +22,7 @@ export interface NuevoReporte {
   descripcion: string;
   latitud: number;
   longitud: number;
+  zona?: string | null;
   evidencia?: File | null;
 }
 
@@ -64,15 +66,16 @@ export class ReportesService {
         form.append('descripcion', data.descripcion);
         form.append('latitud', String(data.latitud));
         form.append('longitud', String(data.longitud));
+        if (data.zona) form.append('zona', data.zona);
         form.append('evidencia', data.evidencia as File);
 
         fetch(this.apiUrl, { method: 'POST', headers, body: form, signal: controller.signal })
           .then(async (res) => {
             this.createAbortController = null;
             if (!res.ok) {
-              const json = await res.json().catch(() => null);
-              observer.error(json || { status: res.status });
-              return;
+                const json = await res.json().catch(() => null);
+                observer.error(json || { status: res.status });
+                return;
             }
             const json = await res.json().catch(() => null);
             observer.next(json);
@@ -99,7 +102,8 @@ export class ReportesService {
         categoria: data.categoria,
         descripcion: data.descripcion,
         latitud: data.latitud,
-        longitud: data.longitud
+        longitud: data.longitud,
+        zona: data.zona || null
       },
       { headers }
     );

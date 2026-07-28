@@ -107,7 +107,7 @@
             <p class="card-descripcion">{{ reporte.descripcion }}</p>
             <div class="card-meta">
               <span class="card-fecha">{{ formatearFecha(reporte.fecha) }}</span>
-              <span class="card-coords">{{ reporte.latitud | number:'1.4-4' }}, {{ reporte.longitud | number:'1.4-4' }}</span>
+              <span class="card-coords">{{ reporte.zona ? reporte.zona : (reporte.latitud | number:'1.4-4') + ', ' + (reporte.longitud | number:'1.4-4') }}</span>
             </div>
           </div>
           <button class="card-ver-btn" (click)="verDetalle(reporte)">Ver</button>
@@ -137,6 +137,12 @@
             <span class="detalle-label">Fecha</span>
             <span class="detalle-valor">{{ formatearFecha(reporteSeleccionado.fecha) }}</span>
           </div>
+          @if (reporteSeleccionado.zona) {
+            <div class="detalle-item" style="grid-column: 1 / -1;">
+              <span class="detalle-label">Zona</span>
+              <span class="detalle-valor">{{ reporteSeleccionado.zona }}</span>
+            </div>
+          }
           <div class="detalle-item">
             <span class="detalle-label">Latitud</span>
             <span class="detalle-valor">{{ reporteSeleccionado.latitud | number:'1.6-6' }}</span>

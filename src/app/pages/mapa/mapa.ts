@@ -334,6 +334,7 @@ export class Mapa implements AfterViewInit, OnDestroy {
         descripcion: this.reporte.descripcion,
         latitud: this.selectedCoords.lat,
         longitud: this.selectedCoords.lng,
+        zona: this.zonaSeleccionada,
         evidencia: this.evidenciaArchivo
       }).subscribe({
         next: (res) => {

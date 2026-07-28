@@ -4,6 +4,15 @@ require_once __DIR__ . '/../config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
+// Auto-migración para añadir la columna 'zona' si no existe
+try {
+    $db->query("SELECT zona FROM reportes LIMIT 1");
+} catch (PDOException $e) {
+    try {
+        $db->exec("ALTER TABLE reportes ADD zona VARCHAR(255) NULL AFTER longitud");
+    } catch (PDOException $e2) { }
+}
+
 switch ($method) {
     case 'GET':
         // Obtener reportes activos. Si viene ?desde=<fecha ISO>, solo trae
@@ -14,7 +23,7 @@ switch ($method) {
 
             if ($desde) {
                 $stmt = $db->prepare(
-                    "SELECT id, categoria, descripcion, latitud, longitud, fecha, evidencia_path,
+                    "SELECT id, categoria, descripcion, latitud, longitud, zona, fecha, evidencia_path,
                             confirmaciones, marcas_falso
                      FROM reportes
                      WHERE estado = 'activo' AND fecha > ?
@@ -23,7 +32,7 @@ switch ($method) {
                 $stmt->execute([$desde]);
             } else {
                 $stmt = $db->query(
-                    "SELECT id, categoria, descripcion, latitud, longitud, fecha, evidencia_path,
+                    "SELECT id, categoria, descripcion, latitud, longitud, zona, fecha, evidencia_path,
                             confirmaciones, marcas_falso
                      FROM reportes
                      WHERE estado = 'activo'
@@ -63,6 +72,8 @@ switch ($method) {
         $descripcion = trim($input['descripcion'] ?? '');
         $latitud = $input['latitud'] ?? null;
         $longitud = $input['longitud'] ?? null;
+        $zona = trim($input['zona'] ?? '');
+        if ($zona === '') $zona = null;
 
         if (!$categoria || !$descripcion || !$latitud || !$longitud) {
             http_response_code(400);
@@ -91,10 +102,10 @@ switch ($method) {
             }
 
             $stmt = $db->prepare(
-                "INSERT INTO reportes (categoria, descripcion, latitud, longitud, fecha, evidencia_path)
-                 VALUES (?, ?, ?, ?, NOW(), ?)"
+                "INSERT INTO reportes (categoria, descripcion, latitud, longitud, zona, fecha, evidencia_path)
+                 VALUES (?, ?, ?, ?, ?, NOW(), ?)"
             );
-            $stmt->execute([$categoria, $descripcion, $latitud, $longitud, $evidenciaPath]);
+            $stmt->execute([$categoria, $descripcion, $latitud, $longitud, $zona, $evidenciaPath]);
 
             $id = $db->lastInsertId();
 
