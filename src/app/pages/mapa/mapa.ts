@@ -77,6 +77,8 @@ export class Mapa implements AfterViewInit, OnDestroy {
       zoomControl: false
     });
 
+    setTimeout(() => this.map.invalidateSize(), 0);
+
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
     L.tileLayer(
